@@ -1,8 +1,8 @@
-let restaurants,
-  neighborhoods,
-  cuisines
-var map
-var markers = []
+let restaurants;
+let neighborhoods;
+let cuisines;
+let map;
+let markers = []
 
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
@@ -10,7 +10,7 @@ var markers = []
 document.addEventListener('DOMContentLoaded', (event) => {
   fetchNeighborhoods();
   fetchCuisines();
-});
+}); 
 
 /**
  * Fetch all neighborhoods and set their HTML.
@@ -117,7 +117,7 @@ resetRestaurants = (restaurants) => {
 
   // Remove all map markers
   if (self.markers) {
-    self.markers.forEach(marker => marker.remove());
+    self.markers.forEach(marker => marker.setMap(null));
   }
   self.markers = [];
   self.restaurants = restaurants;
