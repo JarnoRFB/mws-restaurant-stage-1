@@ -12,15 +12,12 @@ const responsive = require('gulp-responsive');
 
 
 gulp.task('default', ['copy-html', 'copy-images', 'copy-data', 'styles', 'scripts'], function() {
-	// gulp.watch('sass/**/*.scss', ['styles']);
-	gulp.watch('css/**/*.css', ['styles']);
-	gulp.watch('js/**/*.js', ['scripts']);
+	gulp.watch('sass/**/*.scss', ['styles', browserSync.reload]);
+	gulp.watch('js/**/*.js', ['scripts', browserSync.reload]);
 
 	// gulp.watch('js/**/*.js', ['lint']);
 	gulp.watch('index.html', ['copy-html']);
 	gulp.watch('./dist/*.html').on('change', browserSync.reload);
-	gulp.watch('./dist/css/styles.css').on('change', browserSync.reload);
-
 
 	browserSync.init({
 		server: {
@@ -68,11 +65,10 @@ gulp.task('copy-images', function() {
 });
 
 gulp.task('styles', function() {
-	// gulp.src('sass/**/*.scss')
-	// 	.pipe(sass({
-	// 		outputStyle: 'compressed'
-	// 	}).on('error', sass.logError))
-	gulp.src('css/*')
+	gulp.src('sass/**/*.scss')
+		.pipe(sass({
+			outputStyle: 'compressed'
+		}).on('error', sass.logError))
 		.pipe(autoprefixer({
 			browsers: ['last 2 versions']
 		}))
