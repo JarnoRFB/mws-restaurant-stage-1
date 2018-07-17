@@ -283,8 +283,6 @@ nav {
       border-top: 1px solid #fff;
       padding: 0px 40px 30px;
       width: 90%; 
-      // position: fixed;
-      top: calc(30vh + 80px);
     }
 
     #restaurant-img {
@@ -402,6 +400,10 @@ nav {
 
     #restaurant-box {
       display: initial;
+    }
+
+    #restaurant-container {
+      margin-top: 130px;
     }
 
   }
