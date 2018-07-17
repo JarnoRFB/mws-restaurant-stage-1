@@ -16,7 +16,7 @@ gulp.task('default', ['copy-html', 'copy-images', 'copy-data', 'styles', 'script
 	gulp.watch('js/**/*.js', ['scripts', browserSync.reload]);
 
 	// gulp.watch('js/**/*.js', ['lint']);
-	gulp.watch('index.html', ['copy-html']);
+	gulp.watch('*.html', ['copy-html']);
 	gulp.watch('./dist/*.html').on('change', browserSync.reload);
 
 	browserSync.init({
