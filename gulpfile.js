@@ -14,6 +14,9 @@ const responsive = require('gulp-responsive');
 gulp.task('default', ['copy-html', 'copy-images', 'copy-data', 'styles', 'scripts'], function() {
 	gulp.watch('sass/**/*.scss', ['styles', browserSync.reload]);
 	gulp.watch('js/**/*.js', ['scripts', browserSync.reload]);
+	gulp.watch('./serviceWorker.js', ['scripts', browserSync.reload]);
+
+
 
 	// gulp.watch('js/**/*.js', ['lint']);
 	gulp.watch('*.html', ['copy-html']);
@@ -38,6 +41,8 @@ gulp.task('scripts', function() {
 	gulp.src('js/**/*.js')
 		// .pipe(concat('all.js'))
 		.pipe(gulp.dest('dist/js'));
+	gulp.src('serviceWorker.js')
+		.pipe(gulp.dest('dist/'));
 });
 
 gulp.task('scripts-dist', function() {
