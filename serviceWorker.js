@@ -1,10 +1,11 @@
+// import idb from 'idb';
+
 const staticCacheName = 'restaurant-cache-v1'
 
 const urlsToCache = [
     '/',
     '/restaurant.html',
     '/css/styles.css',
-    '/data/restaurants.json',
     '/img/1.jpg',
     '/img/2.jpg',
     '/img/3.jpg',
@@ -22,6 +23,7 @@ const urlsToCache = [
 
 ];
 
+
 self.addEventListener('install', event => {
     event.waitUntil(
         cacheResources()
@@ -30,7 +32,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
     event.waitUntil(
-       deleteOldCaches()
+        deleteOldCaches()
     )
 });
 
@@ -68,3 +70,4 @@ function serveOrFetch(request) {
         // In case everything goes wrong...
         .catch(() => caches.match('/offline.html'))
 }
+

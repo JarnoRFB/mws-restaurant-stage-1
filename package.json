@@ -11,6 +11,7 @@
         "gulp-responsive": "^2.11.0",
         "gulp-sass": "*",
         "gulp-sourcemaps": "^2.6.4",
-        "gulp-uglify": "^3.0.0"
+        "gulp-uglify": "^3.0.0",
+        "idb": "^1.4.0"
     }
 }
