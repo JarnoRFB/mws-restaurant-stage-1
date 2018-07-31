@@ -3,14 +3,78 @@ let neighborhoods;
 let cuisines;
 let map;
 let markers = []
+registerServiceWorker = () => {
+  navigator.serviceWorker.register('./serviceWorker.js')
+  .then(reg => {
+    if (reg.installing) {
+      console.log('Service worker is being installed')
+    } else if (reg.waiting) {
+      console.log('Service worker sucessfully installed')
+    } else if (reg.active) {
+      console.log('Service worker is active')
+    }
+
+    console.log(`scope is ${reg.scope}`);
+  }).catch(err => {
+    console.log(`Failed to register service worker with ${err}`)
+  });
+}
+
+registerServiceWorker()
+
+getStaticAllRestaurantsMapImage = (restaurants) => {
+  let loc = {
+    lat: 40.722216,
+    lng: -73.987501
+  };
+  // Create static map image for initial display
+  let mapURL = `http://maps.googleapis.com/maps/api/staticmap?center=${
+  loc.lat},${loc.lng}&zoom=12&size=${
+  document.documentElement.clientWidth}x400&markers=color:red`;
+  restaurants.forEach(r => {
+    mapURL += `|${r.latlng.lat},${r.latlng.lng}`;
+  });
+  mapURL += "&key=AIzaSyBxkAzlvKkueSTlEnrx9SswARuAli4Eiw4";
+
+  return mapURL;
+}
 
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', (event) => {
+  DBHelper.fetchRestaurantByCuisineAndNeighborhood('all', 'all', (error, restaurants) => {
+    if (error) { // Got an error!
+      console.error(error);
+    } else {
+      resetRestaurants(restaurants);
+      fillRestaurantsHTML();
+      addMarkersToMap();
+
+    }
+  })
   fetchNeighborhoods();
   fetchCuisines();
+
+  /**
+ * Initialize Google map, called from HTML.
+ */
+
 }); 
+
+window.initMap = () => //console.log('init map');
+{
+  let loc = {
+    lat: 40.722216,
+    lng: -73.987501
+  };
+  self.map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 12,
+    center: loc,
+    scrollwheel: false
+  });
+  // updateRestaurants();
+}
 
 /**
  * Fetch all neighborhoods and set their HTML.
@@ -67,21 +131,21 @@ fillCuisinesHTML = (cuisines = self.cuisines) => {
   });
 }
 
-/**
- * Initialize Google map, called from HTML.
- */
-window.initMap = () => {
-  let loc = {
-    lat: 40.722216,
-    lng: -73.987501
-  };
-  self.map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 12,
-    center: loc,
-    scrollwheel: false
-  });
-  updateRestaurants();
-}
+// /**
+//  * Initialize Google map, called from HTML.
+//  */
+// window.initMap = () => {
+//   // let loc = {
+//   //   lat: 40.722216,
+//   //   lng: -73.987501
+//   // };
+//   // self.map = new google.maps.Map(document.getElementById('map'), {
+//   //   zoom: 12,
+//   //   center: loc,
+//   //   scrollwheel: false
+//   // });
+//   updateRestaurants();
+// }
 
 /**
  * Update page and map for current restaurants.
@@ -102,6 +166,7 @@ updateRestaurants = () => {
     } else {
       resetRestaurants(restaurants);
       fillRestaurantsHTML();
+      addMarkersToMap(restaurants);
     }
   })
 }
@@ -131,7 +196,6 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     ul.append(createRestaurantHTML(restaurant));
   });
-  addMarkersToMap();
 }
 
 /**
@@ -180,17 +244,3 @@ addMarkersToMap = (restaurants = self.restaurants) => {
   });
 }
 
-navigator.serviceWorker.register('./serviceWorker.js')
-.then(reg => {
-  if (reg.installing) {
-    console.log('Service worker is being installed')
-  } else if (reg.waiting) {
-    console.log('Service worker sucessfully installed')
-  } else if (reg.active) {
-    console.log('Service worker is active')
-  }
-
-  console.log(`scope is ${reg.scope}`);
-}).catch(err => {
-  console.log(`Failed to register service worker with ${err}`)
-});

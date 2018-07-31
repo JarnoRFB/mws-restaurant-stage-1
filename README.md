@@ -12,3 +12,5 @@ To run the project locally
 The page should open on `localhost:3000`.
 
 
+Icon made by Freepik from www.flaticon.com.
+

@@ -12,12 +12,12 @@ const source = require("vinyl-source-stream");
 const browserify = require("browserify");
 
 
-gulp.task('default', ['copy-html', 'copy-images', 'copy-data', 'styles', 'scripts'], function() {
+gulp.task('default', ['copy-html', 'copy-images', 'copy-manifest', 'styles', 'scripts'], function() {
 	gulp.watch('sass/**/*.scss', ['styles', browserSync.reload]);
 	gulp.watch('js/**/*.js', ['scripts', browserSync.reload]);
 
 
-
+	gulp.watch('manifest.json', ['copy-maifest'])
 	// gulp.watch('js/**/*.js', ['lint']);
 	gulp.watch('*.html', ['copy-html']);
 	gulp.watch('./dist/*.html').on('change', browserSync.reload);
@@ -39,7 +39,7 @@ gulp.task('dist', [
 
 gulp.task('scripts', function() {
 	gulp.src('js/**/*.js')
-		// .pipe(concat('all.js'))
+		// .pipe(uglify())
 		.pipe(gulp.dest('dist/js'));
 	
 });
@@ -70,9 +70,9 @@ gulp.task('copy-html', function() {
 		.pipe(gulp.dest('dist/'));
 });
 
-gulp.task('copy-data', function() {
-	gulp.src('data/*.json')
-		.pipe(gulp.dest('dist/data'));
+gulp.task('copy-manifest', function() {
+	gulp.src('manifest.json')
+		.pipe(gulp.dest('dist/'));
 });
 
 gulp.task('copy-images', function() {
@@ -88,6 +88,7 @@ gulp.task('styles', function() {
 		.pipe(autoprefixer({
 			browsers: ['last 2 versions']
 		}))
+		// .pipe(uglify())
 		.pipe(gulp.dest('dist/css'));
 });
 
