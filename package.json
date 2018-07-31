@@ -3,6 +3,7 @@
     "dependencies": {},
     "devDependencies": {
         "browser-sync": "2.22.0",
+        "browserify": "^16.2.2",
         "gulp": "*",
         "gulp-autoprefixer": "*",
         "gulp-concat": "^2.6.1",
@@ -12,6 +13,7 @@
         "gulp-sass": "*",
         "gulp-sourcemaps": "^2.6.4",
         "gulp-uglify": "^3.0.0",
-        "idb": "^1.4.0"
+        "idb": "^1.4.0",
+        "vinyl-source-stream": "^2.0.0"
     }
 }

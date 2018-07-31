@@ -1,6 +1,9 @@
-// import idb from 'idb';
+const idb = require('idb');
 
 const staticCacheName = 'restaurant-cache-v1'
+
+const port = 1337
+const DATABASE_URL = `http://localhost:${port}/restaurants`;
 
 const urlsToCache = [
     '/',
@@ -24,6 +27,39 @@ const urlsToCache = [
 ];
 
 
+function createDb(){
+    console.log('creating db')
+    const dbPromise = idb.open('restaurant-db', 1, upgradeDb => {
+        switch(upgradeDb.oldVersion) {
+          case 0:
+            const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
+            restaurantStore.createIndex('cuisine', 'cuisine_type');
+            restaurantStore.createIndex('neighborhood', 'neighborhood')
+        }     
+    });
+    return dbPromise
+  }
+
+function writeToDb(db, response) {
+    console.log('writing to db');
+    return db.then(db => {
+        const tx = db.transaction('restaurants', 'readwrite');
+        const restaurantStore = tx.objectStore('restaurants');
+        for (restaurant of response){
+        restaurantStore.put(restaurant);
+        }
+        return tx.complete;
+    })
+}
+
+function fetchRestaurants() {
+    dbPromise = createDb();
+    return fetch(DATABASE_URL)
+    .then(response => response.json())
+    .then(response => writeToDb(dbPromise, response))
+    .catch(error => console.log(error))
+  }
+
 self.addEventListener('install', event => {
     event.waitUntil(
         cacheResources()
@@ -32,7 +68,10 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
     event.waitUntil(
-        deleteOldCaches()
+        Promise.all([
+            fetchRestaurants(),
+            deleteOldCaches()
+        ])
     )
 });
 
@@ -63,7 +102,10 @@ function serveOrFetch(request) {
             return response || fetch(request);
         }).then(response => {
             return caches.open(staticCacheName).then(cache => {
-              cache.put(request, response.clone());
+                if (request.method === 'GET'
+                    && !request.url.includes('browser-sync')){
+                    cache.put(request, response.clone());
+                }
               return response
             })  
         })

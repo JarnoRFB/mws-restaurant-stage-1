@@ -8,13 +8,13 @@ const uglify = require('gulp-uglify');
 const sourcemaps = require('gulp-sourcemaps');
 const imagemin = require('gulp-imagemin');
 const responsive = require('gulp-responsive');
-
+const source = require("vinyl-source-stream");
+const browserify = require("browserify");
 
 
 gulp.task('default', ['copy-html', 'copy-images', 'copy-data', 'styles', 'scripts'], function() {
 	gulp.watch('sass/**/*.scss', ['styles', browserSync.reload]);
 	gulp.watch('js/**/*.js', ['scripts', browserSync.reload]);
-	gulp.watch('./serviceWorker.js', ['scripts', browserSync.reload]);
 
 
 
@@ -41,7 +41,18 @@ gulp.task('scripts', function() {
 	gulp.src('js/**/*.js')
 		// .pipe(concat('all.js'))
 		.pipe(gulp.dest('dist/js'));
-	gulp.src('serviceWorker.js')
+	
+});
+
+gulp.task('service-worker', () => {
+	const browserifyObject = browserify({
+		debug: true
+	  });
+	
+	return browserifyObject
+		.require('serviceWorker.js', {entry: true})
+		.bundle()
+		.pipe(source('serviceWorker.js'))
 		.pipe(gulp.dest('dist/'));
 });
 

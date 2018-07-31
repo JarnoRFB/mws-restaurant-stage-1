@@ -1,28 +1,4 @@
-function createDb(){
-  console.log('creating db')
-  const dbPromise = idb.open('restaurant-db', 1, upgradeDb => {
-      console.log(upgradeDb.oldVersion)
-      switch(upgradeDb.oldVersion) {
-        case 0:
-          const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
-          restaurantStore.createIndex('cuisine', 'cuisine_type');
-          restaurantStore.createIndex('neighborhood', 'neighborhood')
-      }     
-  });
-  return dbPromise
-}
-
-function writeToDb(db, response) {
-  console.log('writing to db');
-  return db.then(db => {
-    const tx = db.transaction('restaurants', 'readwrite');
-    const restaurantStore = tx.objectStore('restaurants');
-    for (restaurant of response){
-      restaurantStore.put(restaurant);
-    }
-    return tx.complete;
-  })
-}
+const dbPromise = idb.open('restaurant-db', 1);
 
 // from https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates
 function onlyUnique(value, index, self) { 
@@ -39,26 +15,6 @@ function unique(iterable){
 class DBHelper {
 
   /**
-   * Database URL.
-   * Change this to restaurants.json file location on your server.
-   */
-  static get DATABASE_URL() {
-    const port = 1337 // Change this to your server port
-    return `http://localhost:${port}/restaurants`;
-  }
-
-  /**
-   * Fetch all restaurants.
-   */
-  static fetchRestaurants(callback) {
-    fetch(DBHelper.DATABASE_URL)
-    .then(response => response.json())
-    // .then(response => callback(null, response))
-    .then(response => writeToDb(dbPromise, response))
-    .catch(error => callback(error, null))
-  }
-
-  /**
    * Fetch a restaurant by its ID.
    */
   static fetchRestaurantById(id, callback) {
@@ -66,14 +22,10 @@ class DBHelper {
     dbPromise.then(db => {
       const tx = db.transaction('restaurants');
       const restaurantStore = tx.objectStore('restaurants');
-      console.log(id)
       return restaurantStore.get(Number(id));
 
     }).then(requestedRestaurant => {
-      console.log('matched restaurants');
-
-      console.log(requestedRestaurant);
-      callback('hello', requestedRestaurant)
+      callback(null, requestedRestaurant)
     }).catch(error => {
       callback('Restaurant does not exist', null);
     });
@@ -162,7 +114,7 @@ class DBHelper {
       const restaurantStore = tx.objectStore('restaurants');
       return restaurantStore.getAll();
     }).then(restaurants => restaurants.map(restaurant => restaurant.neighborhood))
-    .then(unique)
+      .then(unique)
       .then(neighborhoods => {
       callback(null, neighborhoods)
     }).catch(error => {
@@ -180,12 +132,9 @@ class DBHelper {
       return restaurantStore.getAll();
 
     }).then(restaurants => restaurants.map(restaurant => restaurant.cuisine_type))
-      
-      .then(cui => {
-      console.log(cui)
-      return unique(cui)})
-      .then(neighborhoods => {
-      callback(null, neighborhoods)
+      .then(unique)
+      .then(cuisines => {
+      callback(null, cuisines)
     }).catch(error => {
       callback(error, null);
     });
@@ -226,5 +175,5 @@ class DBHelper {
 
 }
 
-dbPromise = createDb()
-DBHelper.fetchRestaurants()
+// dbPromise = createDb()
+// DBHelper.fetchRestaurants()
