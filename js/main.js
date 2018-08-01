@@ -23,7 +23,6 @@ const registerServiceWorker = () => {
 
 registerServiceWorker()
 
-
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
@@ -45,71 +44,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
 
 /**
- * Fake initialize Google map, called from HTML.
+ * Initialize Google map, called from HTML.
  */
-// window.initMap = () => //console.log('init map');
-// {
-//   DBHelper.fetchRestaurantByCuisineAndNeighborhood('all', 'all', (error, restaurants) => {
-//     if (error) { // Got an error!
-//       console.error(error);
-//     } else {
-//       const mapURL = getStaticAllRestaurantsMapImageURL(self.restaurants);
-//       const mapDiv = document.getElementById("map");
-//       const mapImg = document.createElement("img");
-//       mapImg.id = "mapImg";
-//       mapImg.onclick = e => switchToLiveMap();
-//       mapImg.src = mapURL;
-//       mapDiv.append(mapImg);
-//     }
-//   })
-
-// }
-
-const getStaticAllRestaurantsMapImageURL = (restaurants) => {
+window.initMap = () => {
   let loc = {
     lat: 40.722216,
     lng: -73.987501
   };
-  // Create static map image for initial display
-  let mapURL = `http://maps.googleapis.com/maps/api/staticmap?center=${
-  loc.lat},${loc.lng}&zoom=12&size=${
-  document.documentElement.clientWidth}x400&markers=color:red`;
-  // restaurants.forEach(r => {
-  //   mapURL += `|${r.latlng.lat},${r.latlng.lng}`;
-  // });
-  mapURL += "&key=AIzaSyBxkAzlvKkueSTlEnrx9SswARuAli4Eiw4";
-
-  return mapURL;
-}
-
-
-const switchToLiveMap = event => {
+  self.map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 12,
+    center: loc,
+    scrollwheel: false
+  });
   updateRestaurants();
-  if (liveMap)
-    return;
-
-  document
-    .getElementById("mapImg")
-    .remove();
-
-  let loc = {
-    lat: 40.722216,
-    lng: -73.987501
-  };
-  self.map = new google
-    .maps
-    .Map(document.getElementById("map"), {
-      zoom: 12,
-      center: loc,
-      scrollwheel: false
-    });
-
-  liveMap = true;
 }
-
-
-
-
 
 /**
  * Fetch all neighborhoods and set their HTML.
@@ -164,22 +112,6 @@ const fillCuisinesHTML = (cuisines = self.cuisines) => {
     option.value = cuisine;
     select.append(option);
   });
-}
-
-/**
- * Initialize Google map, called from HTML.
- */
-window.initMap = () => {
-  let loc = {
-    lat: 40.722216,
-    lng: -73.987501
-  };
-  self.map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 12,
-    center: loc,
-    scrollwheel: false
-  });
-  updateRestaurants();
 }
 
 /**

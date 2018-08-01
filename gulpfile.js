@@ -12,11 +12,9 @@ const source = require("vinyl-source-stream");
 const browserify = require("browserify");
 
 
-gulp.task('default', ['copy-html', 'copy-images', 'copy-manifest', 'styles', 'scripts'], function() {
+gulp.task('default', ['copy-html', 'copy-images', 'copy-manifest', 'styles', 'scripts', 'service-worker'], function() {
 	gulp.watch('sass/**/*.scss', ['styles', browserSync.reload]);
 	gulp.watch('js/**/*.js', ['scripts', browserSync.reload]);
-
-
 	gulp.watch('manifest.json', ['copy-maifest'])
 	// gulp.watch('js/**/*.js', ['lint']);
 	gulp.watch('*.html', ['copy-html']);
@@ -29,17 +27,9 @@ gulp.task('default', ['copy-html', 'copy-images', 'copy-manifest', 'styles', 'sc
 	});
 });
 
-gulp.task('dist', [
-	'copy-html',
-	'images',
-	'styles',
-	'lint',
-	'scripts-dist'
-]);
 
 gulp.task('scripts', function() {
 	gulp.src('js/**/*.js')
-		// .pipe(uglify())
 		.pipe(gulp.dest('dist/js'));
 	
 });
@@ -88,7 +78,6 @@ gulp.task('styles', function() {
 		.pipe(autoprefixer({
 			browsers: ['last 2 versions']
 		}))
-		// .pipe(uglify())
 		.pipe(gulp.dest('dist/css'));
 });
 
@@ -137,13 +126,6 @@ gulp.task('images', () => {
 			extname: '.jpg',
 		  },
 		}
-		// , {
-		//   width: 1600,
-		//   rename: {
-		// 	suffix: '_large_1x',
-		// 	extname: '.jpg',
-		//   },
-		// }
 	],
 	  }))
 	  .pipe(gulp.dest('dist/img'));
