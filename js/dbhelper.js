@@ -1,4 +1,11 @@
-const dbPromise = idb.open('restaurant-db', 1);
+const dbPromise = idb.open('restaurant-db', 1, upgradeDb => {
+  switch(upgradeDb.oldVersion) {
+    case 0:
+      const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
+      restaurantStore.createIndex('cuisine', 'cuisine_type');
+      restaurantStore.createIndex('neighborhood', 'neighborhood')
+  }     
+});
 
 // from https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates
 function onlyUnique(value, index, self) { 

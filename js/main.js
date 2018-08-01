@@ -13,6 +13,23 @@ const registerServiceWorker = () => {
       console.log('Service worker sucessfully installed')
     } else if (reg.active) {
       console.log('Service worker is active')
+      /**
+       * Fetch neighborhoods and cuisines as soon as the page is loaded.
+       */
+      document.addEventListener('DOMContentLoaded', (event) => {
+        DBHelper.fetchRestaurantByCuisineAndNeighborhood('all', 'all', (error, restaurants) => {
+          if (error) { // Got an error!
+            console.error(error);
+          } else {
+            resetRestaurants(restaurants);
+            fillRestaurantsHTML();
+            // addMarkersToMap();
+
+          }
+        })
+        fetchNeighborhoods();
+        fetchCuisines();
+      }); 
     }
 
     console.log(`scope is ${reg.scope}`);
@@ -23,24 +40,7 @@ const registerServiceWorker = () => {
 
 registerServiceWorker()
 
-/**
- * Fetch neighborhoods and cuisines as soon as the page is loaded.
- */
-document.addEventListener('DOMContentLoaded', (event) => {
-  DBHelper.fetchRestaurantByCuisineAndNeighborhood('all', 'all', (error, restaurants) => {
-    if (error) { // Got an error!
-      console.error(error);
-    } else {
-      resetRestaurants(restaurants);
-      fillRestaurantsHTML();
-      // addMarkersToMap();
 
-    }
-  })
-  fetchNeighborhoods();
-  fetchCuisines();
-
-}); 
 
 
 /**

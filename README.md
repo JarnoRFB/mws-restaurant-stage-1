@@ -6,6 +6,9 @@
 
 To run the project locally
 
+Clone and run the data server from https://github.com/udacity/mws-restaurant-stage-2
+then in this repository
+
     $ npm install
     $ gulp
 
