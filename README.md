@@ -13,7 +13,14 @@ then in this repository
     $ gulp
 
 The page should open on `localhost:3000`.
+The app can be confused by existing caches and databases from previous apps and especially after running lighthouse.
+To avoid that 
+* delete all existing caches and idbs.
+* set service worker to "Update on reload"
+* reload the page
+* uncheck service worker "Update on reload" again
 
+Now everything should work as intended.
 
 Icon made by Freepik from www.flaticon.com.
 

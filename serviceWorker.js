@@ -25,6 +25,27 @@ const urlsToCache = [
     '/offline.html'
 ];
 
+function getPathname(request){
+    return new URL(request.url).pathname
+}
+
+function getCacheKey(request){
+    let cacheKey;
+    if (!request.url.includes('maps')){
+        cacheKey = getPathname(request)
+    } else {
+        cacheKey = request
+    }
+    return cacheKey;
+}
+
+
+
+function shouldBeCached(request){
+    return (request.method === 'GET'
+            && !request.url.includes('browser-sync'))
+}
+
 function createDb(){
     console.log('creating db')
     const dbPromise = idb.open('restaurant-db', 1, upgradeDb => {
@@ -76,13 +97,14 @@ async function deleteOldCaches() {
 }
 
 function serveOrFetch(request) {
-    return  caches.match(request).then(response => {
+    const cacheKey = getCacheKey(request);
+    return  caches.match(cacheKey).then(response => {
             return response || fetch(request);
         }).then(response => {
             return caches.open(staticCacheName).then(cache => {
-                if (request.method === 'GET'
-                    && !request.url.includes('browser-sync')){
-                    cache.put(request, response.clone());
+
+                if (shouldBeCached(request)){
+                    cache.put(cacheKey, response.clone());
                 }
               return response
             })  
