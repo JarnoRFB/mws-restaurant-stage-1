@@ -22,7 +22,7 @@
 
   <main id="maincontent">
     <section id="map-container">
-      <div id="map" role="application" tabindex="-1"></div>
+      <div id="map" role="application" aria-label="Google maps application showing the locations of the restaurants"></div>
     </section>
     <section>
       <div class="filter-options">
@@ -30,11 +30,9 @@
         <select id="neighborhoods-select" name="neighborhoods" onchange="updateRestaurants()" aria-label="select neighborhood">
           <option value="all">All Neighborhoods</option>
         </select>
-        <!-- <label for="neighborhoods-select">select neighborhood</label> -->
         <select id="cuisines-select" name="cuisines" onchange="updateRestaurants()"  aria-label="select cuisine">
           <option value="all">All Cuisines</option>
         </select>
-        <!-- <label for="cuisines-select">select cuisine</label> -->
 
       </div>
       <ul id="restaurants-list"></ul>
