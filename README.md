@@ -20,6 +20,8 @@ To avoid that
 * reload the page
 * uncheck service worker "Update on reload" again
 
+or alternatively just "Clear storage" via the "Application" tab.
+
 Now everything should work as intended.
 
 Icon made by Freepik from www.flaticon.com.
