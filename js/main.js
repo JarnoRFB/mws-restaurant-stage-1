@@ -4,32 +4,38 @@ let cuisines;
 let map;
 let markers = []
 
+/**
+ * Fetch neighborhoods and cuisines as soon as the page is loaded.
+ */
+const initSite = () => {
+  document.addEventListener('DOMContentLoaded', (event) => {
+      console.log('DOM loaded');
+      DBHelper.fetchRestaurantByCuisineAndNeighborhood('all', 'all', (error, restaurants) => {
+        if (error) { // Got an error!
+          console.error(error);
+        } else {
+          console.log('filling restaurants');
+          resetRestaurants(restaurants);
+          fillRestaurantsHTML();
+        }
+      })
+      fetchNeighborhoods();
+      fetchCuisines();
+    }); 
+}
+
 const registerServiceWorker = () => {
   navigator.serviceWorker.register('./serviceWorker.js')
   .then(reg => {
+    console.log('registering sw');
+    reg.addEventListener('activate', event => console.log('sw activation event'));
     if (reg.installing) {
       console.log('Service worker is being installed')
     } else if (reg.waiting) {
       console.log('Service worker sucessfully installed')
     } else if (reg.active) {
       console.log('Service worker is active')
-      /**
-       * Fetch neighborhoods and cuisines as soon as the page is loaded.
-       */
-      document.addEventListener('DOMContentLoaded', (event) => {
-        DBHelper.fetchRestaurantByCuisineAndNeighborhood('all', 'all', (error, restaurants) => {
-          if (error) { // Got an error!
-            console.error(error);
-          } else {
-            resetRestaurants(restaurants);
-            fillRestaurantsHTML();
-            // addMarkersToMap();
-
-          }
-        })
-        fetchNeighborhoods();
-        fetchCuisines();
-      }); 
+      
     }
 
     console.log(`scope is ${reg.scope}`);
@@ -39,9 +45,7 @@ const registerServiceWorker = () => {
 }
 
 registerServiceWorker()
-
-
-
+initSite();
 
 /**
  * Initialize Google map, called from HTML.

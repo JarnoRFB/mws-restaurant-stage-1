@@ -1,10 +1,8 @@
 const idb = require('idb');
 
+const dbName = 'restaurant-db'
+
 const staticCacheName = 'restaurant-cache-v1'
-
-const port = 1337
-const DATABASE_URL = `http://localhost:${port}/restaurants`;
-
 const urlsToCache = [
     '/',
     '/restaurant.html',
@@ -25,30 +23,15 @@ const urlsToCache = [
     '/offline.html'
 ];
 
-function getPathname(request){
-    return new URL(request.url).pathname
+async function cacheResources() {
+    const cache = await caches.open(staticCacheName);
+    return cache.addAll(urlsToCache);
 }
 
-function getCacheKey(request){
-    let cacheKey;
-    if (!request.url.includes('maps')){
-        cacheKey = getPathname(request)
-    } else {
-        cacheKey = request
-    }
-    return cacheKey;
-}
-
-
-
-function shouldBeCached(request){
-    return (request.method === 'GET'
-            && !request.url.includes('browser-sync'))
-}
 
 function createDb(){
     console.log('creating db')
-    const dbPromise = idb.open('restaurant-db', 1, upgradeDb => {
+    const dbPromise = idb.open(dbName, 1, upgradeDb => {
         switch(upgradeDb.oldVersion) {
           case 0:
             const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
@@ -59,33 +42,7 @@ function createDb(){
     return dbPromise
   }
 
-function writeToDb(db, response) {
-    console.log('writing to db');
-    return db.then(db => {
-        const tx = db.transaction('restaurants', 'readwrite');
-        const restaurantStore = tx.objectStore('restaurants');
-        for (restaurant of response){
-        restaurantStore.put(restaurant);
-        }
-        return tx.complete;
-    })
-}
-
-function fetchRestaurants() {
-    dbPromise = createDb();
-    return fetch(DATABASE_URL)
-    .then(response => response.json())
-    .then(response => writeToDb(dbPromise, response))
-    .catch(error => console.log(error))
-  }
-
-
-async function cacheResources() {
-    const cache = await caches.open(staticCacheName);
-    return cache.addAll(urlsToCache);
-}
-
-async function deleteOldCaches() {
+  async function deleteOldCaches() {
     const cacheNames = await caches.keys();
     const deleteCachePromises = [];
     for (let cacheName of cacheNames) {
@@ -96,22 +53,146 @@ async function deleteOldCaches() {
     return Promise.all(deleteCachePromises);
 }
 
-function serveOrFetch(request) {
-    const cacheKey = getCacheKey(request);
-    return  caches.match(cacheKey).then(response => {
-            return response || fetch(request);
-        }).then(response => {
-            return caches.open(staticCacheName).then(cache => {
 
-                if (shouldBeCached(request)){
-                    cache.put(cacheKey, response.clone());
-                }
-              return response
-            })  
-        })
-        // In case everything goes wrong...
-        .catch(() => caches.match('/offline.html'))
+  async function serveOrFetch(request) {
+    if (managedInDb(request)){
+        return await serveViaDb(request);
+    } else if (managedInCache(request)){
+        return await serveViaCache(request);
+    } else {
+        return await fetch(request);
+    }
 }
+
+function managedInDb(request){
+    const requestURL = new URL(request.url);
+    return requestURL.port === '1337';
+}
+
+function managedInCache(request){
+    return (request.method === 'GET'
+            && !request.url.includes('browser-sync'));
+}
+
+async function serveViaDb(request) {
+    console.log('serve via db');
+    if (isRequestForSingleRestaurant(request)){
+        console.log('single')
+        return serveSingleViaDb(request);
+    } else {
+        console.log('all')
+
+        return serveAllViaDb(request);
+    }
+
+}
+
+function isRequestForSingleRestaurant(request){
+    const parts = request.url.split('/');
+    const lastPart = parts[parts.length - 1];
+    return lastPart !== 'restaurants' && lastPart.length > 0;
+}
+
+async function serveSingleViaDb(request){
+    try {
+        const db = await idb.open(dbName, 1);
+        const storedResponse = await getResponseStoredInDb(db, getIdFromRequest(request));
+        console.log(storedResponse);
+        if (storedResponse) {
+            response = new Response(JSON.stringify(storedResponse));
+        }
+        else {
+            console.log('store in db');
+            response = await fetch(request);
+            await storeSingleInDb(db, response);
+        }
+        return response;
+    } catch (ex) {
+        return new Response('failure in db');
+    }
+}
+
+function getIdFromRequest(request){
+    const parts = request.url.split('/');
+    return Number(parts[parts.length - 1]);
+}
+
+async function serveAllViaDb(request){
+    try {
+        const db = await idb.open(dbName, 1);
+
+        const storedResponse = await getResponseStoredInDb(db, 'all');
+        let response;
+        if (storedResponse.length) {
+            response = new Response(JSON.stringify(storedResponse));
+        }
+        else {
+            console.log('store in db');
+            response = await fetch(request);
+            await storeInDb(db, response);
+        }
+        return response;
+    } catch (ex) {
+        return new Response('failure in db');
+    }
+}
+
+async function getResponseStoredInDb(db, id) {
+    const tx = db.transaction('restaurants');
+    const restaurantStore = tx.objectStore('restaurants');
+    let storedResponse;
+    if (id === 'all'){
+        storedResponse = await restaurantStore.getAll();
+    } else {
+        storedResponse = await restaurantStore.get(id);
+    }
+    return storedResponse;
+}
+
+async function storeInDb(db, response) {
+    const responseToStore = await response.clone().json();
+    const tx = db.transaction('restaurants', 'readwrite');
+    const restaurantStore = tx.objectStore('restaurants');
+    for (let restaurant of responseToStore) {
+        restaurantStore.put(restaurant);
+    }
+}
+
+async function storeSingleInDb(db, response) {
+    const responseToStore = await response.clone().json();
+    const tx = db.transaction('restaurants', 'readwrite');
+    const restaurantStore = tx.objectStore('restaurants');
+    restaurantStore.put(responseToStore);
+}
+
+async function serveViaCache(request){
+    try {
+        const cacheKey = getCacheKey(request);
+        const cachedResponse = await caches.match(cacheKey);
+        const response = cachedResponse || await fetch(request);
+        const cache = await caches.open(staticCacheName);
+        cache.put(cacheKey, response.clone());
+        return response;
+    } catch (ex) {
+        // In case everything goes wrong...
+        return caches.match('/offline.html');
+    }
+}
+
+function getCacheKey(request){
+    let cacheKey;
+    if (!request.url.includes('maps')){
+        cacheKey = getPathname(request)
+    } else {
+        cacheKey = request;
+    }
+    return cacheKey;
+}
+
+function getPathname(request){
+    return new URL(request.url).pathname
+}
+
 
 self.addEventListener('install', event => {
     event.waitUntil(
@@ -122,14 +203,16 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
     event.waitUntil(
         Promise.all([
-            fetchRestaurants(),
+            createDb(),
             deleteOldCaches()
         ])
     )
 });
 
 self.addEventListener('fetch', event => {
-    event.respondWith(serveOrFetch(event.request))
+    event.respondWith(serveOrFetch(event.request));
    
 });
+
+
 
