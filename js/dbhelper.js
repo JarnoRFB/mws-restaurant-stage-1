@@ -181,4 +181,22 @@ class DBHelper {
     }
   }
 
+  static async addNewReview(formData){
+    try {
+      await fetch(`${DBHelper.DATABASE_URL}/reviews/`, {
+                  method: 'POST',
+                  body: JSON.stringify(formData)
+                });
+
+                //   {
+                //     "restaurant_id": <restaurant_id>,
+                //     "name": <reviewer_name>,
+                //     "rating": <rating>,
+                //     "comments": <comment_text>
+                // }
+    } catch(ex){
+      console.log(ex);
+    }
+  }
+
 }

@@ -173,3 +173,15 @@ getParameterByName = (name, url) => {
     return '';
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
+
+function addReview(){
+  console.log('add review');
+  const name = document.querySelector('#name-form').value;
+  const rating = Number(document.querySelector('#rating-form').value);
+  const comments = document.querySelector('#comment-form').value;
+  const formData = {name, rating, comments};
+  formData.restaurant_id = self.restaurant.id;
+  DBHelper.addNewReview(formData);
+
+
+}

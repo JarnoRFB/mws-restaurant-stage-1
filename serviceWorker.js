@@ -223,6 +223,7 @@ self.addEventListener('activate', event => {
     )
 });
 
+const handleReviewAddition = ({url, event}) => fetch(event.request)
 
 workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/reviews/\\?restaurant_id=\\d+`),
@@ -230,15 +231,20 @@ workbox.routing.registerRoute(
 );
 
 workbox.routing.registerRoute(
+    new RegExp(`${DatabaseURL}/reviews/`),
+    handleReviewAddition,
+    'POST'
+);
+
+workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/restaurants/\\d+`),
     serveSingleViaDb
-); 
+);
 
 workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/restaurants/$`),
     serveAllViaDb
 );
-
 
 workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/restaurants/(\\d+)/\\?is_favorite=(true|false)`),
