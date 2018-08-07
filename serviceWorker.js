@@ -49,14 +49,12 @@ function createDb(){
             if (!upgradeDb.objectStoreNames.contains('restaurants')) {
                 const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
             }
-            // restaurantStore.createIndex('cuisine', 'cuisine_type');
-            // restaurantStore.createIndex('neighborhood', 'neighborhood')
         }     
     });
     return dbPromise
   }
 
-  async function deleteOldCaches() {
+async function deleteOldCaches() {
     const cacheNames = await caches.keys();
     const deleteCachePromises = [];
     for (let cacheName of cacheNames) {
@@ -68,23 +66,15 @@ function createDb(){
 }
 
 
-  async function serveOrFetch({url, event, params}) {
+async function serveOrFetch({url, event}) {
     const request = event.request;
-    if (managedInCache(request)){
-        return await serveViaCache(request);
-    } else {
-        return await fetch(request);
-    }
+    return await serveViaCache(request);
 }
 
-function managedInDb(request){
-    const requestURL = new URL(request.url);
-    return requestURL.port === '1337';
-}
 
-function managedInCache(request){
-    return (request.method === 'GET'
-            && !request.url.includes('browser-sync'));
+function managedInCache({url, event}){
+    return (event.request.method === 'GET'
+            && !url.href.includes('browser-sync'));
 }
 
 async function serveViaDb(request) {
@@ -100,11 +90,6 @@ async function serveViaDb(request) {
 
 }
 
-function isRequestForSingleRestaurant(request){
-    const parts = request.url.split('/');
-    const lastPart = parts[parts.length - 1];
-    return lastPart !== 'restaurants' && lastPart.length > 0;
-}
 
 async function serveSingleViaDb({url, event}){
     console.log('single')
@@ -112,7 +97,6 @@ async function serveSingleViaDb({url, event}){
     try {
         const db = await idb.open(dbName, 1);
         const storedResponse = await getResponseStoredInDb(db, getIdFromRequest(request));
-        console.log(storedResponse);
         if (storedResponse) {
             response = new Response(JSON.stringify(storedResponse));
         }
@@ -211,6 +195,18 @@ function getPathname(request){
     return new URL(request.url).pathname
 }
 
+async function handleFavUpdate({url, event, params}) {
+    console.log('handle update')
+    const [id, isFavorite] = params;
+    const db = await idb.open(dbName, 1);
+    const tx = db.transaction('restaurants', 'readwrite');
+    const restaurantStore = tx.objectStore('restaurants');
+    const restaurant = await restaurantStore.get(Number(id));
+    restaurant.is_favorite = isFavorite;
+    restaurantStore.put(restaurant);
+    return fetch(event.request)
+}
+
 
 self.addEventListener('install', event => {
     event.waitUntil(
@@ -230,7 +226,6 @@ self.addEventListener('activate', event => {
 
 workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/reviews/\\?restaurant_id=\\d+`),
-
     workbox.strategies.staleWhileRevalidate(),
 );
 
@@ -244,4 +239,14 @@ workbox.routing.registerRoute(
     serveAllViaDb
 );
 
-workbox.routing.setDefaultHandler(serveOrFetch);
+
+workbox.routing.registerRoute(
+    new RegExp(`${DatabaseURL}/restaurants/(\\d+)/\\?is_favorite=(true|false)`),
+    handleFavUpdate,
+    'PUT'
+);
+
+workbox.routing.registerRoute(
+    managedInCache,
+    serveOrFetch
+);

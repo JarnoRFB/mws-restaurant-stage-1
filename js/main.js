@@ -191,6 +191,18 @@ const createRestaurantHTML = (restaurant) => {
   name.innerHTML = restaurant.name;
   li.append(name);
 
+  const favoriteBtn = document.createElement('button');
+  favoriteBtn.innerHTML = '<3';
+  const isFavorite = normalizeFavoriteStatus(restaurant.is_favorite);
+  toggleFavoriteClass(favoriteBtn, isFavorite);
+  favoriteBtn.onclick = async function() {
+    const updatedRestaurant = await DBHelper.fetchRestaurantByIdWithoutCallback(restaurant.id);
+    const isFavorite = !normalizeFavoriteStatus(updatedRestaurant.is_favorite);
+    toggleFavoriteClass(favoriteBtn, isFavorite);
+    DBHelper.updateFavoriteStatus(restaurant.id, isFavorite);
+  }
+  li.append(favoriteBtn);
+
   const neighborhood = document.createElement('p');
   neighborhood.innerHTML = restaurant.neighborhood;
   li.append(neighborhood);
@@ -205,6 +217,34 @@ const createRestaurantHTML = (restaurant) => {
   li.append(more)
 
   return li
+}
+
+/*
+ * Needed because the API stores the status as a string once it is changed.
+ */
+const normalizeFavoriteStatus = (favoriteStatus) => {
+  if (typeof(favoriteStatus) === 'string') {
+    return favoriteStatus === 'true';
+  } else if (typeof(favoriteStatus) === 'boolean') {
+    return favoriteStatus;
+  } else {
+    return false;
+  }
+
+}
+
+function toggleFavoriteClass(favoriteBtn, isFavorite){
+  if (isFavorite) {
+    favoriteBtn.classList.remove('favorite-button__off');
+    favoriteBtn.classList.add('favorite-button__on');
+    favoriteBtn.setAttribute('aria-label', 'Add restaurant to favorites.');
+
+  } else {
+    favoriteBtn.classList.remove('favorite-button__on');
+    favoriteBtn.classList.add('favorite-button__off');
+    favoriteBtn.setAttribute('aria-label', 'Remove restaurant from favorites.');
+  }
+
 }
 
 /**

@@ -27,12 +27,17 @@ class DBHelper {
    * Fetch a restaurant by its ID.
    */
   static fetchRestaurantById(id, callback) {
-    // fetch all restaurants with proper error handling.
     const singleRestaurantURL = `${DBHelper.DATABASE_URL}/restaurants/${id}`
     fetch(singleRestaurantURL)
     .then(response => response.json())
     .then(response => callback(null, response))
     .catch(error => callback(error, null))
+  }
+
+  static async fetchRestaurantByIdWithoutCallback(id, callback) {
+    const singleRestaurantURL = `${DBHelper.DATABASE_URL}/restaurants/${id}`
+    const response = await fetch(singleRestaurantURL);
+    return response.json();
   }
 
   static fetchReviewsById(id, callback){
@@ -165,6 +170,15 @@ class DBHelper {
       animation: google.maps.Animation.DROP}
     );
     return marker;
+  }
+
+  static async updateFavoriteStatus(restaurantId, isFavorite){
+    try {
+      await fetch(`${DBHelper.DATABASE_URL}/restaurants/${restaurantId}/?is_favorite=${isFavorite}`,
+                  {method: 'PUT'});
+    } catch(ex){
+      console.log(ex);
+    }
   }
 
 }
