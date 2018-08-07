@@ -9,14 +9,15 @@ class DBHelper {
    */
   static get DATABASE_URL() {
     const port = 1337 // Change this to your server port
-    return `http://localhost:${port}/restaurants`;
+    return `http://localhost:${port}`;
   }
 
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {
-    fetch(DBHelper.DATABASE_URL)
+    const restaurantsURL = `${DBHelper.DATABASE_URL}/restaurants/`
+    fetch(restaurantsURL)
     .then(response => response.json())
     .then(response => callback(null, response))
     .catch(error => callback(error, null))
@@ -27,12 +28,23 @@ class DBHelper {
    */
   static fetchRestaurantById(id, callback) {
     // fetch all restaurants with proper error handling.
-    const singleRestaurantURL = `${DBHelper.DATABASE_URL}/${id}`
+    const singleRestaurantURL = `${DBHelper.DATABASE_URL}/restaurants/${id}`
     fetch(singleRestaurantURL)
     .then(response => response.json())
     .then(response => callback(null, response))
     .catch(error => callback(error, null))
   }
+
+  static fetchReviewsById(id, callback){
+    const singleRestaurantReviewsURL = `${DBHelper.DATABASE_URL}/reviews/?restaurant_id=${id}`
+    fetch(singleRestaurantReviewsURL)
+    .then(response => response.json())
+    .then(response => callback(null, response))
+    .catch(error => callback(error, null))
+
+    // let response = await fetch(singleRestaurantReviewsURL)
+  }
+
 
   /**
    * Fetch restaurants by a cuisine type with proper error handling.

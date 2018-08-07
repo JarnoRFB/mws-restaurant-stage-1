@@ -9,13 +9,14 @@ const sourcemaps = require('gulp-sourcemaps');
 const imagemin = require('gulp-imagemin');
 const responsive = require('gulp-responsive');
 const source = require("vinyl-source-stream");
-const browserify = require("browserify");
+// const browserify = require("browserify");
 
 
 gulp.task('default', ['copy-html', 'copy-images', 'copy-manifest', 'styles', 'scripts', 'service-worker'], function() {
 	gulp.watch('sass/**/*.scss', ['styles', browserSync.reload]);
 	gulp.watch('js/**/*.js', ['scripts', browserSync.reload]);
-	gulp.watch('manifest.json', ['copy-maifest'])
+	gulp.watch('manifest.json', ['copy-maifest']);
+	gulp.watch('serviceWorker.js', ['service-worker']);
 	// gulp.watch('js/**/*.js', ['lint']);
 	gulp.watch('*.html', ['copy-html']);
 	gulp.watch('./dist/*.html').on('change', browserSync.reload);
@@ -35,14 +36,16 @@ gulp.task('scripts', function() {
 });
 
 gulp.task('service-worker', () => {
-	const browserifyObject = browserify({
-		debug: true
-	  });
+	// const browserifyObject = browserify({
+	// 	debug: true
+	//   });
 	
-	return browserifyObject
-		.require('serviceWorker.js', {entry: true})
-		.bundle()
-		.pipe(source('serviceWorker.js'))
+	// return browserifyObject
+	// 	.require('serviceWorker.js', {entry: true})
+	// 	.bundle()
+	// 	.pipe(source('serviceWorker.js'))
+	// 	.pipe(gulp.dest('dist/'));
+	gulp.src('serviceWorker.js')
 		.pipe(gulp.dest('dist/'));
 });
 

@@ -1,4 +1,16 @@
-const idb = require('idb');
+importScripts(
+    'https://storage.googleapis.com/workbox-cdn/releases/3.0.0/workbox-sw.js',
+    'js/idb.js'
+);
+
+if (workbox) {
+  console.log(`Yay! Workbox is loaded 🎉`);
+  workbox.precaching.precacheAndRoute([]);
+} else {
+  console.log(`Boo! Workbox didn't load 😬`);
+}
+
+const DatabaseURL = 'http://localhost:1337';
 
 const dbName = 'restaurant-db'
 
@@ -34,9 +46,11 @@ function createDb(){
     const dbPromise = idb.open(dbName, 1, upgradeDb => {
         switch(upgradeDb.oldVersion) {
           case 0:
-            const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
-            restaurantStore.createIndex('cuisine', 'cuisine_type');
-            restaurantStore.createIndex('neighborhood', 'neighborhood')
+            if (!upgradeDb.objectStoreNames.contains('restaurants')) {
+                const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
+            }
+            // restaurantStore.createIndex('cuisine', 'cuisine_type');
+            // restaurantStore.createIndex('neighborhood', 'neighborhood')
         }     
     });
     return dbPromise
@@ -54,10 +68,9 @@ function createDb(){
 }
 
 
-  async function serveOrFetch(request) {
-    if (managedInDb(request)){
-        return await serveViaDb(request);
-    } else if (managedInCache(request)){
+  async function serveOrFetch({url, event, params}) {
+    const request = event.request;
+    if (managedInCache(request)){
         return await serveViaCache(request);
     } else {
         return await fetch(request);
@@ -93,7 +106,9 @@ function isRequestForSingleRestaurant(request){
     return lastPart !== 'restaurants' && lastPart.length > 0;
 }
 
-async function serveSingleViaDb(request){
+async function serveSingleViaDb({url, event}){
+    console.log('single')
+    const request = event.request;
     try {
         const db = await idb.open(dbName, 1);
         const storedResponse = await getResponseStoredInDb(db, getIdFromRequest(request));
@@ -117,7 +132,10 @@ function getIdFromRequest(request){
     return Number(parts[parts.length - 1]);
 }
 
-async function serveAllViaDb(request){
+async function serveAllViaDb({url, event}){
+    console.log('all')
+
+    const request = event.request;
     try {
         const db = await idb.open(dbName, 1);
 
@@ -209,10 +227,21 @@ self.addEventListener('activate', event => {
     )
 });
 
-self.addEventListener('fetch', event => {
-    event.respondWith(serveOrFetch(event.request));
-   
-});
 
+workbox.routing.registerRoute(
+    new RegExp(`${DatabaseURL}/reviews/\\?restaurant_id=\\d+`),
 
+    workbox.strategies.staleWhileRevalidate(),
+);
 
+workbox.routing.registerRoute(
+    new RegExp(`${DatabaseURL}/restaurants/\\d+`),
+    serveSingleViaDb
+); 
+
+workbox.routing.registerRoute(
+    new RegExp(`${DatabaseURL}/restaurants/$`),
+    serveAllViaDb
+);
+
+workbox.routing.setDefaultHandler(serveOrFetch);
