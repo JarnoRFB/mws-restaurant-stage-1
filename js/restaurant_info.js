@@ -182,6 +182,8 @@ function addReview(){
   const formData = {name, rating, comments};
   formData.restaurant_id = self.restaurant.id;
   DBHelper.addNewReview(formData);
-
-
+  formData.updatedAt = Date.now();
+  const ul = document.getElementById('reviews-list');
+  ul.insertBefore(createReviewHTML(formData), ul.childNodes[0]);
+  DBHelper.fetchReviewsById(self.restaurant.id, (error, reviews) => console.log('Fetch to update cache'))
 }

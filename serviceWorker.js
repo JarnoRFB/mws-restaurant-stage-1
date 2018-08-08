@@ -3,12 +3,6 @@ importScripts(
     'js/idb.js'
 );
 
-if (workbox) {
-  console.log(`Yay! Workbox is loaded 🎉`);
-  workbox.precaching.precacheAndRoute([]);
-} else {
-  console.log(`Boo! Workbox didn't load 😬`);
-}
 
 const DatabaseURL = 'http://localhost:1337';
 
@@ -227,12 +221,37 @@ const handleReviewAddition = ({url, event}) => fetch(event.request)
 
 workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/reviews/\\?restaurant_id=\\d+`),
-    workbox.strategies.staleWhileRevalidate(),
+    workbox.strategies.networkFirst(),
+);
+
+const showSyncNotification = () => {
+    self.registration.showNotification('Your review has been send to the server', {
+      body: '🎉`🎉`🎉`'
+    });
+  };
+
+const showofflineNotification = () => {
+self.registration.showNotification('Your review will be send to the server once you are online again', {
+    body: '🖧🖧🖧'
+});
+};
+  
+
+const bgSyncPlugin = new workbox.backgroundSync.Plugin(
+    'pendingReviews', 
+    {maxRetentionTime: 24 * 60, // Retry for max of 24 Hours
+     callbacks: {
+         requestWillEnqueue: showofflineNotification,
+        queueDidReplay: showSyncNotification
+     }
+    }
 );
 
 workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/reviews/`),
-    handleReviewAddition,
+    workbox.strategies.networkOnly({
+        plugins: [bgSyncPlugin]
+      }),
     'POST'
 );
 
