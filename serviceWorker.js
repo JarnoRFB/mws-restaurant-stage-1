@@ -7,6 +7,7 @@ importScripts(
 const DatabaseURL = 'http://localhost:1337';
 
 const dbName = 'restaurant-db'
+const dbVersion = 1;
 
 const staticCacheName = 'restaurant-cache-v1'
 const urlsToCache = [
@@ -34,19 +35,22 @@ async function cacheResources() {
     return cache.addAll(urlsToCache);
 }
 
-
 function createDb(){
     console.log('creating db')
-    const dbPromise = idb.open(dbName, 1, upgradeDb => {
+    const dbPromise = idb.open(dbName, dbVersion, upgradeDb => {
         switch(upgradeDb.oldVersion) {
           case 0:
             if (!upgradeDb.objectStoreNames.contains('restaurants')) {
                 const restaurantStore = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
             }
+            if (!upgradeDb.objectStoreNames.contains('reviews')) {
+                const reviewStore = upgradeDb.createObjectStore('reviews', {keyPath: 'id'});
+                reviewStore.createIndex('restaurant_id', 'restaurant_id');
+            }
         }     
     });
     return dbPromise
-  }
+}
 
 async function deleteOldCaches() {
     const cacheNames = await caches.keys();
@@ -59,12 +63,10 @@ async function deleteOldCaches() {
     return Promise.all(deleteCachePromises);
 }
 
-
 async function serveOrFetch({url, event}) {
     const request = event.request;
     return await serveViaCache(request);
 }
-
 
 function managedInCache({url, event}){
     return (event.request.method === 'GET'
@@ -84,13 +86,14 @@ async function serveViaDb(request) {
 
 }
 
-
-async function serveSingleViaDb({url, event}){
+async function serveSingleViaDb({url, event, params}){
     console.log('single')
     const request = event.request;
+    let [id] = params;
+    id = Number(id);
     try {
-        const db = await idb.open(dbName, 1);
-        const storedResponse = await getResponseStoredInDb(db, getIdFromRequest(request));
+        const db = await idb.open(dbName, dbVersion);
+        const storedResponse = await getResponseStoredInDb(db, id);
         if (storedResponse) {
             response = new Response(JSON.stringify(storedResponse));
         }
@@ -115,7 +118,7 @@ async function serveAllViaDb({url, event}){
 
     const request = event.request;
     try {
-        const db = await idb.open(dbName, 1);
+        const db = await idb.open(dbName, dbVersion);
 
         const storedResponse = await getResponseStoredInDb(db, 'all');
         let response;
@@ -125,7 +128,7 @@ async function serveAllViaDb({url, event}){
         else {
             console.log('store in db');
             response = await fetch(request);
-            await storeInDb(db, response);
+            await storeInDb(db, 'restaurants', response);
         }
         return response;
     } catch (ex) {
@@ -145,10 +148,24 @@ async function getResponseStoredInDb(db, id) {
     return storedResponse;
 }
 
-async function storeInDb(db, response) {
+async function getReviewsStoredInDb(db, restaurant_id) {
+    const tx = db.transaction('reviews');
+    const reviewStore = tx.objectStore('reviews');
+    let storedResponse;
+    if (restaurant_id === 'all'){
+        storedResponse = await reviewStore.getAll();
+    } else {
+        const restaurantIndex = reviewStore.index('restaurant_id');
+        storedResponse = await restaurantIndex.getAll(restaurant_id);
+    }
+    return storedResponse;
+}
+
+
+async function storeInDb(db, objectStore, response) {
     const responseToStore = await response.clone().json();
-    const tx = db.transaction('restaurants', 'readwrite');
-    const restaurantStore = tx.objectStore('restaurants');
+    const tx = db.transaction(objectStore, 'readwrite');
+    const restaurantStore = tx.objectStore(objectStore);
     for (let restaurant of responseToStore) {
         restaurantStore.put(restaurant);
     }
@@ -192,7 +209,7 @@ function getPathname(request){
 async function handleFavUpdate({url, event, params}) {
     console.log('handle update')
     const [id, isFavorite] = params;
-    const db = await idb.open(dbName, 1);
+    const db = await idb.open(dbName, dbVersion);
     const tx = db.transaction('restaurants', 'readwrite');
     const restaurantStore = tx.objectStore('restaurants');
     const restaurant = await restaurantStore.get(Number(id));
@@ -200,6 +217,103 @@ async function handleFavUpdate({url, event, params}) {
     restaurantStore.put(restaurant);
     return fetch(event.request)
 }
+
+const showSyncNotification = (request) => {
+    if (Notification.permission === "granted") {
+        self.registration.showNotification("You're online again", {
+            body: 'Your review has been send to the server'
+        });
+    }
+};
+
+const showofflineNotification = () => {
+    if (Notification.permission === "granted") {
+        self.registration.showNotification("You're offline", {
+            body: 'Your review will be send to the server once you are online again'
+        });
+    }
+};
+  
+const bgSyncPlugin = new workbox.backgroundSync.Plugin(
+    'pendingReviews', 
+    {maxRetentionTime: 24 * 60, // Retry for max of 24 Hours
+     callbacks: {
+        requestWillEnqueue: showofflineNotification,
+        queueDidReplay: showSyncNotification
+     }
+    }
+);
+
+
+async function handleReviews({url, event, params}){
+    let [restaurantId] = params;
+    restaurantId = Number(restaurantId);
+    const request = event.request;
+    const db = await idb.open(dbName, dbVersion);
+
+    try {
+        // Try network first approach. If there is no network there
+        // will be no pending reviews. Moreover, the reviews in the 
+        // db might be stale. Then update the db with the network 
+        // response.
+        const response = await fetch(request);
+        await storeInDb(db, 'reviews', response);
+        return response;
+    } catch(ex){
+        // If there is no network, we look in the cache and the 
+        // queue for pending reviews.
+        try {
+            const storedReviews = await getReviewsStoredInDb(db, restaurantId);
+            console.log('stored reviews', storedReviews)
+
+            const pendingReviews = await getReviewsFromQueue();
+            console.log('pendingReviews returned', pendingReviews)
+
+            const allReviews = storedReviews.concat(pendingReviews);
+            console.log('all reviews', allReviews)
+            return new Response(JSON.stringify(allReviews))
+        } catch (ex) {
+            return new Response('failure in db');
+        }
+    }
+}
+
+async function getReviewsFromQueue(){
+    try {
+        const db = await idb.open('workbox-background-sync', 1);
+        const tx = db.transaction('requests');
+        const requestStore = tx.objectStore('requests');
+        const queueNameIndex = requestStore.index('queueName');
+        const pendingReviewRequests = await queueNameIndex.getAll('pendingReviews');
+        console.log('pending reviews in db', pendingReviewRequests);
+        const pendingReviews = [];
+        for (let pendingReviewRequest of pendingReviewRequests){
+            pendingReviews.push(await readBlobAsJSON(pendingReviewRequest.storableRequest.requestInit.body))
+        }
+
+        return pendingReviews;
+    } catch(ex){
+        console.log('Queue not yet created.')
+        return [];
+    }
+}
+
+// based on https://blog.shovonhasan.com/using-promises-with-filereader/
+const readBlobAsJSON = (inputFile) => {
+    const temporaryFileReader = new FileReader();
+  
+    return new Promise((resolve, reject) => {
+      temporaryFileReader.onerror = () => {
+        temporaryFileReader.abort();
+        reject(new DOMException("Problem parsing input file."));
+      };
+  
+      temporaryFileReader.onload = () => {
+        resolve(JSON.parse(temporaryFileReader.result));
+      };
+      temporaryFileReader.readAsText(inputFile);
+    });
+};
 
 
 self.addEventListener('install', event => {
@@ -217,36 +331,6 @@ self.addEventListener('activate', event => {
     )
 });
 
-const handleReviewAddition = ({url, event}) => fetch(event.request)
-
-workbox.routing.registerRoute(
-    new RegExp(`${DatabaseURL}/reviews/\\?restaurant_id=\\d+`),
-    workbox.strategies.networkFirst(),
-);
-
-const showSyncNotification = () => {
-    self.registration.showNotification('Your review has been send to the server', {
-      body: '🎉`🎉`🎉`'
-    });
-  };
-
-const showofflineNotification = () => {
-self.registration.showNotification('Your review will be send to the server once you are online again', {
-    body: '🖧🖧🖧'
-});
-};
-  
-
-const bgSyncPlugin = new workbox.backgroundSync.Plugin(
-    'pendingReviews', 
-    {maxRetentionTime: 24 * 60, // Retry for max of 24 Hours
-     callbacks: {
-         requestWillEnqueue: showofflineNotification,
-        queueDidReplay: showSyncNotification
-     }
-    }
-);
-
 workbox.routing.registerRoute(
     new RegExp(`${DatabaseURL}/reviews/`),
     workbox.strategies.networkOnly({
@@ -256,7 +340,12 @@ workbox.routing.registerRoute(
 );
 
 workbox.routing.registerRoute(
-    new RegExp(`${DatabaseURL}/restaurants/\\d+`),
+    new RegExp(`${DatabaseURL}/reviews/\\?restaurant_id=(\\d+)`),
+    handleReviews,
+);
+
+workbox.routing.registerRoute(
+    new RegExp(`${DatabaseURL}/restaurants/(\\d+)`),
     serveSingleViaDb
 );
 

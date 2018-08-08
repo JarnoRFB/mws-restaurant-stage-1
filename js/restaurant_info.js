@@ -28,7 +28,7 @@ fetchRestaurantFromURL = (callback) => {
     callback(null, self.restaurant)
     return;
   }
-  const id = getParameterByName('id');
+  const id = getRestaurantId();
   if (!id) { // no id found in URL
     error = 'No restaurant id in URL'
     callback(error, null);
@@ -117,6 +117,8 @@ fillReviewsHTML = (reviews = self.reviews) => {
     return;
   }
   const ul = document.getElementById('reviews-list');
+  reviews.sort(mostRecentFirst);
+
   for (review of reviews) {
     ul.appendChild(createReviewHTML(review));
   }
@@ -174,16 +176,26 @@ getParameterByName = (name, url) => {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+const getRestaurantId = () => {
+  return Number(getParameterByName('id'));
+}
+
+
+// Based on https://stackoverflow.com/questions/8837454/sort-array-of-objects-by-single-key-with-date-value
+const mostRecentFirst = (a, b) => {
+  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+}
+
 function addReview(){
   console.log('add review');
+  const restaurant_id = getRestaurantId();
   const name = document.querySelector('#name-form').value;
   const rating = Number(document.querySelector('#rating-form').value);
   const comments = document.querySelector('#comment-form').value;
-  const formData = {name, rating, comments};
-  formData.restaurant_id = self.restaurant.id;
-  DBHelper.addNewReview(formData);
+  const formData = {restaurant_id, name, rating, comments};
   formData.updatedAt = Date.now();
+  DBHelper.addNewReview(formData);
   const ul = document.getElementById('reviews-list');
   ul.insertBefore(createReviewHTML(formData), ul.childNodes[0]);
-  DBHelper.fetchReviewsById(self.restaurant.id, (error, reviews) => console.log('Fetch to update cache'))
+  DBHelper.fetchReviewsById(restaurant_id, (error, reviews) => console.log('Fetch to update cache'))
 }
