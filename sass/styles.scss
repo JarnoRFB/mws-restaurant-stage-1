@@ -212,12 +212,96 @@ nav {
   }
 }
 
+@mixin favorite-button($hoverColor) {
+  background-color: white;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 32px;
+  border: none;
+  border-radius: 50%;
+
+  &:hover {
+    background-color: rgb(213, 213, 223);
+  }
+  &:active {
+    background-color: rgb(175, 175, 180);
+  }
+}
+
+/* ====================== Favorite Button ====================== */
+
+$onColor: red; 
+$offColor: gray;
+
 .favorite-button__on {
-  color: red;
+  @include favorite-button($offColor);
+  color: $onColor;
 }
 
 .favorite-button__off {
-  color: grey;
+  @include favorite-button($onColor);
+  color: offColor;
+}
+
+/* ====================== Review form ====================== */
+
+// Inspired by https://www.w3schools.com/howto/howto_css_responsive_form.asp
+#review-form {
+  * {
+    box-sizing: border-box;
+  }
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+
+  .form-element {
+    margin-top: 6px;
+    width: 100%;
+  }
+
+  .form-element:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+
+  label {
+    width: 25%;
+    float: left;
+    margin-top: 6px;
+    font-size: 14px;
+    display: inline-block;
+    padding: 12px 12px 12px 0;
+  }
+
+  input, select, textarea {
+    width: 70%;
+    float: right;
+    resize: vertical;
+    border-radius: 4px;
+    padding: 12px;
+    border-width: 1px;
+
+
+  }
+
+
+
+  button {
+    background-color: #333;
+    color: white;
+    font-size: 20px;
+    border-radius: 5px;
+    border: none;
+    padding: 5px;
+    float: right;
+    cursor: pointer;
+    margin-top: 6px;
+    margin-bottom: 6px;
+
+
+  }
+
 }
 
 
@@ -341,6 +425,13 @@ nav {
   }
   .filter-options select {
     width: 90%;
+  }
+
+
+  #review-form {
+    input, select, textarea, label, button {
+      width: 100%;
+    }
   }
 
   .inside {
@@ -479,7 +570,11 @@ nav {
     width: calc(100% / 3 - 94px);
   }
 
-  
+  #review-form {
+    .form-element {
+      width: 45%;
+    }
+  }
   .inside {
     header {
       position: fixed;

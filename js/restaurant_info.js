@@ -109,8 +109,8 @@ fillReviewsHTML = (reviews = self.reviews) => {
   const title = document.createElement('h2');
   title.innerHTML = 'Reviews';
   container.appendChild(title);
-
-  if (!reviews) {
+  console.log(reviews)
+  if (!Array.isArray(reviews) || !reviews.length ) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
     container.appendChild(noReviews);

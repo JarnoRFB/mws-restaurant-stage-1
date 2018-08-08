@@ -194,7 +194,7 @@ const createRestaurantHTML = (restaurant) => {
   li.append(name);
 
   const favoriteBtn = document.createElement('button');
-  favoriteBtn.innerHTML = '<3';
+  favoriteBtn.innerHTML = '🤟';
   const isFavorite = normalizeFavoriteStatus(restaurant.is_favorite);
   toggleFavoriteClass(favoriteBtn, isFavorite);
   favoriteBtn.onclick = async function() {
