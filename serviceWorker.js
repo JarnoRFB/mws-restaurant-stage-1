@@ -3,7 +3,6 @@ importScripts(
     'js/idb.js'
 );
 
-
 const DatabaseURL = 'http://localhost:1337';
 
 const dbName = 'restaurant-db'

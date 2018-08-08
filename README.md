@@ -6,7 +6,7 @@
 
 To run the project locally
 
-Clone and run the data server from https://github.com/udacity/mws-restaurant-stage-2
+Clone and run the data server from https://github.com/udacity/mws-restaurant-stage-3
 then in this repository
 
     $ npm install
@@ -23,6 +23,13 @@ To avoid that
 or alternatively just "Clear storage" via the "Application" tab.
 
 Now everything should work as intended.
+
+To test the offline form submission:
+* turn off the backend server
+* turn off the network (`$ nmcli networking off` on Ubuntu)
+* submit a review
+* a notification should appear that you are offline
+* once you are online again a notification should tell you that the review was submitted
 
 Icon made by Freepik from www.flaticon.com.
 
